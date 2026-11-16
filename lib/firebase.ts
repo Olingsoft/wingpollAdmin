@@ -24,6 +24,8 @@ import {
   updateDoc,
   deleteDoc,
   collection,
+  query,
+  where,
 } from "firebase/firestore";
 import {
   Advertisement,
@@ -76,6 +78,42 @@ if (typeof window !== "undefined") {
     .catch(() => {
       // Ignore analytics errors in unsupported environments
     });
+}
+
+/**
+ * Pick a random available Agent Admin or Super Admin from Firestore `users` collection.
+ */
+export async function pickRandomAvailableAgent(): Promise<{
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+} | null> {
+  try {
+    const q = query(
+      collection(db, "users"),
+      where("role", "in", ["agent-admin", "admin"])
+    );
+    const snap = await getDocs(q);
+    const candidates: UserProfile[] = [];
+    snap.forEach((docSnap) => {
+      const data = docSnap.data() as UserProfile;
+      if (data.status !== "Suspended" && data.status !== "Rejected") {
+        candidates.push(data);
+      }
+    });
+    if (candidates.length === 0) return null;
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    return {
+      id: chosen.id,
+      name: chosen.name,
+      email: chosen.email,
+      role: chosen.role || "agent-admin",
+    };
+  } catch (err) {
+    console.warn("Firestore pickRandomAvailableAgent warning:", err);
+    return null;
+  }
 }
 
 /**
@@ -135,6 +173,21 @@ export async function saveUserToFirestore(
       ? "Active"
       : ("Pending Approval" as const);
 
+  let assignedAgentId = existingData.assignedAgentId;
+  let assignedAgentName = existingData.assignedAgentName;
+  let assignedAgentEmail = existingData.assignedAgentEmail;
+  let assignedAgentRole = existingData.assignedAgentRole;
+
+  if (role === "user" && !assignedAgentId) {
+    const chosenAgent = await pickRandomAvailableAgent();
+    if (chosenAgent) {
+      assignedAgentId = chosenAgent.id;
+      assignedAgentName = chosenAgent.name;
+      assignedAgentEmail = chosenAgent.email;
+      assignedAgentRole = chosenAgent.role;
+    }
+  }
+
   const userProfile: UserProfile = {
     id: fbUser.uid,
     name: displayName,
@@ -169,6 +222,10 @@ export async function saveUserToFirestore(
     joinedDate:
       existingData.joinedDate || new Date().toISOString().slice(0, 10),
     status: existingData.status || defaultStatus,
+    assignedAgentId,
+    assignedAgentName,
+    assignedAgentEmail,
+    assignedAgentRole,
   };
 
   try {
@@ -198,15 +255,18 @@ export async function fetchAllUsersFromFirestore(): Promise<UserProfile[]> {
 }
 
 /**
- * Create a new Admin account in Firebase Auth (using a secondary app instance
- * so the current admin session is not interrupted) AND save to Firestore `users` table with role="admin"
+ * Create a new Admin or Agent Admin account in Firebase Auth (using a secondary app instance
+ * so the current admin session is not interrupted) AND save to Firestore `users` table with the selected role
  */
 export async function createAdminAccountInFirebase(params: {
   fullName: string;
   email: string;
   phone: string;
   password: string;
+  role?: "admin" | "agent-admin";
 }): Promise<UserProfile> {
+  const targetRole: "admin" | "agent-admin" =
+    params.role === "agent-admin" ? "agent-admin" : "admin";
   const secondaryAppName = "WingPollSecondaryAdminApp";
   const existingSecondary = getApps().find(
     (a) => a.name === secondaryAppName
@@ -227,11 +287,11 @@ export async function createAdminAccountInFirebase(params: {
     });
   }
 
-  // Save to primary Firestore `users` collection with role: "admin"
+  // Save to primary Firestore `users` collection with selected role
   const adminProfile = await saveUserToFirestore(credential.user, {
     fullName: params.fullName,
     phone: params.phone,
-    role: "admin",
+    role: targetRole,
     authProvider: "email",
   });
 

@@ -53,6 +53,9 @@ export interface Task {
   attachment: TaskAttachment;
   fields?: TaskFieldConfig[];
   tableColumns?: string[];
+  createdBy?: string;
+  createdByName?: string;
+  createdByRole?: UserRole;
 }
 
 export type SubmissionStatus =
@@ -203,6 +206,10 @@ export interface UserProfile {
   referralRewardPaid?: boolean;
   joinedDate: string;
   status: UserAccountStatus;
+  assignedAgentId?: string;
+  assignedAgentName?: string;
+  assignedAgentEmail?: string;
+  assignedAgentRole?: UserRole;
 }
 
 export interface NotificationItem {

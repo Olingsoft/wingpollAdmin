@@ -111,21 +111,31 @@ export default function AgentAdminPage() {
   );
   const [taskToast, setTaskToast] = useState<string | null>(null);
 
-  const activeTasksCount = tasks.filter((t) => t.active).length;
-  const pendingSubmissionsCount = submissions.filter(
+  const visibleTasks =
+    user.role === "admin"
+      ? tasks
+      : tasks.filter((t) => t.createdBy === user.id);
+  const visibleTaskIds = new Set(visibleTasks.map((t) => t.id));
+  const visibleSubmissions =
+    user.role === "admin"
+      ? submissions
+      : submissions.filter((s) => visibleTaskIds.has(s.taskId));
+
+  const activeTasksCount = visibleTasks.filter((t) => t.active).length;
+  const pendingSubmissionsCount = visibleSubmissions.filter(
     (s) => s.status === "Pending Review"
   ).length;
-  const revisionSubmissionsCount = submissions.filter(
+  const revisionSubmissionsCount = visibleSubmissions.filter(
     (s) => s.status === "Revision Required"
   ).length;
-  const approvedSubmissionsCount = submissions.filter(
+  const approvedSubmissionsCount = visibleSubmissions.filter(
     (s) => s.status === "Approved"
   ).length;
 
   const filteredSubmissions =
     submissionFilter === "ALL"
-      ? submissions
-      : submissions.filter((s) => s.status === submissionFilter);
+      ? visibleSubmissions
+      : visibleSubmissions.filter((s) => s.status === submissionFilter);
 
   const startEditTask = (task: Task) => {
     setEditingTaskId(task.id);
@@ -528,8 +538,8 @@ export default function AgentAdminPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <StatsCard
-                  title="Total Tasks"
-                  value={String(tasks.length)}
+                  title="Your Tasks"
+                  value={String(visibleTasks.length)}
                   subtitle={`${activeTasksCount} active in marketplace`}
                   icon={<Briefcase className="w-4 h-4" />}
                   highlighted
@@ -609,17 +619,17 @@ export default function AgentAdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
-                      {submissions.length === 0 ? (
+                      {visibleSubmissions.length === 0 ? (
                         <tr>
                           <td
                             colSpan={5}
                             className="py-8 px-4 text-center text-slate-400"
                           >
-                            No submissions yet.
+                            No submissions yet for your tasks.
                           </td>
                         </tr>
                       ) : (
-                        submissions.slice(0, 6).map((sub) => (
+                        visibleSubmissions.slice(0, 6).map((sub) => (
                           <tr key={sub.id} className="hover:bg-slate-50/80">
                             <td className="py-3 px-4">
                               <p className="font-semibold text-slate-900">
@@ -702,7 +712,17 @@ export default function AgentAdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
-                      {tasks.map((task) => (
+                      {visibleTasks.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="py-8 px-4 text-center text-slate-400"
+                          >
+                            You have not created any tasks yet. Click &ldquo;Create New Task&rdquo; to get started.
+                          </td>
+                        </tr>
+                      ) : (
+                        visibleTasks.map((task) => (
                         <tr key={task.id} className="hover:bg-slate-50/80">
                           <td className="py-3.5 px-4">
                             <p className="font-semibold text-slate-900">
@@ -763,7 +783,8 @@ export default function AgentAdminPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      ))
+                      )}
                     </tbody>
                   </table>
                 </div>

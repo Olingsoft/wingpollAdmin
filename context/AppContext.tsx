@@ -87,6 +87,7 @@ interface AppContextType {
     email: string;
     phone: string;
     password: string;
+    role?: "admin" | "agent-admin";
   }) => Promise<UserProfile>;
   createTask: (taskData: Omit<Task, "id" | "createdAt">) => Task;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
@@ -498,6 +499,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     email: string;
     phone: string;
     password: string;
+    role?: "admin" | "agent-admin";
   }): Promise<UserProfile> => {
     const newAdmin = await createAdminAccountInFirebase(params);
     setAllUsers((prev) => {
@@ -519,6 +521,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...taskData,
       id: `tsk-${Math.floor(200 + Math.random() * 799)}`,
       createdAt: new Date().toISOString().slice(0, 10),
+      createdBy: taskData.createdBy || user.id,
+      createdByName: taskData.createdByName || user.name,
+      createdByRole: taskData.createdByRole || user.role,
     };
     setTasks((prev) => [newTask, ...prev]);
     saveTaskToFirestore(newTask);
