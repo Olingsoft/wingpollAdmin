@@ -1119,7 +1119,7 @@ export default function AdminDashboardPage() {
 
           {/* 3. CREATE / EDIT TASK */}
           {activeTab === "create_task" && (
-            <div className="bg-white border border-slate-200 rounded-lg p-6 max-w-3xl space-y-5">
+            <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
