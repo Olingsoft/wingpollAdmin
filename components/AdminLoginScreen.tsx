@@ -118,6 +118,13 @@ export function AdminLoginScreen() {
 
   if (
     firebaseUser &&
+    (user.role === "admin" || user.role === "agent-admin")
+  ) {
+    return <WingPollLoader message="Redirecting to Console..." />;
+  }
+
+  if (
+    firebaseUser &&
     user.role !== "admin" &&
     user.role !== "agent-admin"
   ) {
