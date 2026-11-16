@@ -19,6 +19,7 @@ import {
   Loader2,
   Megaphone,
   Menu,
+  MoreVertical,
   PlusCircle,
   Power,
   Settings,
@@ -118,6 +119,7 @@ export default function AdminDashboardPage() {
   const [userApprovalToast, setUserApprovalToast] = useState<string | null>(
     null
   );
+  const [openUserMenuId, setOpenUserMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1545,7 +1547,7 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
-                      {allUsers.map((u) => (
+                      {allUsers.map((u, userIdx) => (
                         <tr key={u.id} className="hover:bg-slate-50/80">
                           <td className="py-3.5 px-4">
                             <p className="font-semibold text-slate-900">
@@ -1630,75 +1632,119 @@ export default function AdminDashboardPage() {
                             <StatusBadge status={u.status} />
                           </td>
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
-                              {u.role !== "admin" &&
-                                (u.role === "agent-admin" ? (
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      await updateUserRole(u.id, "user");
-                                      setUserApprovalToast(
-                                        `${u.name} has been demoted from Agent Admin to User.`
-                                      );
-                                    }}
-                                    className="px-2.5 py-1.5 text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 rounded cursor-pointer"
-                                  >
-                                    Demote to User
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      await updateUserRole(u.id, "agent-admin");
-                                      setUserApprovalToast(
-                                        `${u.name} has been promoted to Agent Admin and can now create tasks & manage submissions.`
-                                      );
-                                    }}
-                                    className="px-2.5 py-1.5 text-xs font-semibold bg-[#F0FDF4] text-[#14532D] border border-emerald-200 hover:bg-emerald-100 rounded cursor-pointer"
-                                  >
-                                    Promote to Agent Admin
-                                  </button>
-                                ))}
-
-                              {u.status === "Pending Approval" ||
-                              u.status === "Rejected" ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      await approveUserAccount(u.id);
-                                      setUserApprovalToast(
-                                        u.referredByCode
-                                          ? `Activated ${u.name}'s account & granted KSh 50 referral bonus to referrer (${u.referredByCode})!`
-                                          : `Activated ${u.name}'s earner account! They can now access tasks.`
-                                      );
-                                    }}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-[#16A34A] hover:bg-[#15803d] text-white rounded cursor-pointer shadow-2xs"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    <span>Activate Account</span>
-                                  </button>
-                                  {u.status !== "Rejected" && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        updateUserAccountStatus(u.id, "Rejected")
-                                      }
-                                      className="px-2.5 py-1.5 text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 rounded cursor-pointer"
-                                    >
-                                      Reject
-                                    </button>
-                                  )}
-                                </>
-                              ) : (
+                            <div className="inline-flex items-center justify-end gap-1.5 relative">
+                              {(u.status === "Pending Approval" ||
+                                u.status === "Rejected") && (
                                 <button
                                   type="button"
-                                  onClick={() => toggleUserStatus(u.id)}
-                                  className="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded cursor-pointer"
+                                  onClick={async () => {
+                                    await approveUserAccount(u.id);
+                                    setOpenUserMenuId(null);
+                                    setUserApprovalToast(
+                                      u.referredByCode
+                                        ? `Activated ${u.name}'s account & granted KSh 50 referral bonus to referrer (${u.referredByCode})!`
+                                        : `Activated ${u.name}'s earner account! They can now access tasks.`
+                                    );
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-[#16A34A] hover:bg-[#15803d] text-white rounded cursor-pointer shadow-2xs"
                                 >
-                                  {u.status === "Active" ? "Suspend" : "Activate"}
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Approve</span>
                                 </button>
                               )}
+
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setOpenUserMenuId((prev) =>
+                                      prev === u.id ? null : u.id
+                                    )
+                                  }
+                                  className="p-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 cursor-pointer"
+                                  aria-label={`More actions for ${u.name}`}
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+
+                                {openUserMenuId === u.id && (
+                                  <div
+                                    className={`absolute right-0 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-30 py-1 text-left ${
+                                      userIdx >= allUsers.length - 2
+                                        ? "bottom-full mb-1"
+                                        : "top-full mt-1"
+                                    }`}
+                                  >
+                                    {u.role !== "admin" &&
+                                      (u.role === "agent-admin" ? (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            setOpenUserMenuId(null);
+                                            await updateUserRole(u.id, "user");
+                                            setUserApprovalToast(
+                                              `${u.name} has been demoted from Agent Admin to User.`
+                                            );
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50 cursor-pointer"
+                                        >
+                                          Demote to User
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            setOpenUserMenuId(null);
+                                            await updateUserRole(
+                                              u.id,
+                                              "agent-admin"
+                                            );
+                                            setUserApprovalToast(
+                                              `${u.name} has been promoted to Agent Admin and can now create tasks & manage submissions.`
+                                            );
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs font-medium text-[#14532D] hover:bg-[#F0FDF4] cursor-pointer"
+                                        >
+                                          Promote to Agent Admin
+                                        </button>
+                                      ))}
+
+                                    {(u.status === "Pending Approval" ||
+                                      u.status === "Rejected") &&
+                                      u.status !== "Rejected" && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenUserMenuId(null);
+                                            updateUserAccountStatus(
+                                              u.id,
+                                              "Rejected"
+                                            );
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 cursor-pointer"
+                                        >
+                                          Reject
+                                        </button>
+                                      )}
+
+                                    {u.status !== "Pending Approval" &&
+                                      u.status !== "Rejected" && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenUserMenuId(null);
+                                            toggleUserStatus(u.id);
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                        >
+                                          {u.status === "Active"
+                                            ? "Suspend"
+                                            : "Activate"}
+                                        </button>
+                                      )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                         </tr>
