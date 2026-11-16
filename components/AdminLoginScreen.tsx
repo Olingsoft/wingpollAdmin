@@ -22,6 +22,7 @@ import {
   WINGPOLL_DOMAIN,
 } from "@/lib/firebase";
 import { useApp } from "@/context/AppContext";
+import { WingPollLoader } from "@/components/WingPollLoader";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -112,16 +113,7 @@ export function AdminLoginScreen() {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-6">
-        <div className="bg-white border border-slate-200 rounded-lg p-8 max-w-sm w-full text-center space-y-3 shadow-xs">
-          <Loader2 className="w-7 h-7 text-[#16A34A] animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-slate-800">
-            Checking Admin Session...
-          </p>
-        </div>
-      </div>
-    );
+    return <WingPollLoader message="Checking Admin Session..." />;
   }
 
   if (
