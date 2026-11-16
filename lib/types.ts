@@ -107,6 +107,7 @@ export interface Withdrawal {
 export type TransactionType =
   | "Task Reward"
   | "Referral Reward"
+  | "Daily Video Ad"
   | "Withdrawal"
   | "Withdrawal Reversal";
 
