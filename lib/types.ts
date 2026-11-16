@@ -204,6 +204,9 @@ export interface UserProfile {
   referredByCode?: string;
   referredByUserId?: string;
   referralRewardPaid?: boolean;
+  assignedAgentId?: string;
+  assignedAgentName?: string;
+  assignedAgentEmail?: string;
   joinedDate: string;
   status: UserAccountStatus;
   assignedAgentId?: string;
