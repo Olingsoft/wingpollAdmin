@@ -161,7 +161,13 @@ export default function AdminDashboardPage() {
   );
   const [taskToast, setTaskToast] = useState<string | null>(null);
 
-  // Create Admin Account State
+  // Create Admin Account / Promote User State
+  const [createUserMode, setCreateUserMode] = useState<"create" | "promote">(
+    "promote"
+  );
+  const [selectedPromoteUserId, setSelectedPromoteUserId] = useState("");
+  const [promoteUserSearch, setPromoteUserSearch] = useState("");
+  const [isPromotingUser, setIsPromotingUser] = useState(false);
   const [adminFullName, setAdminFullName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPhone, setAdminPhone] = useState("0712345678");
@@ -279,6 +285,48 @@ export default function AdminDashboardPage() {
       );
     } finally {
       setIsUploadingTaskFile(false);
+    }
+  };
+
+  const handlePromoteUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminFormStatus(null);
+    if (!selectedPromoteUserId) {
+      setAdminFormStatus({
+        type: "error",
+        message: "Please select a user from the list to promote.",
+      });
+      return;
+    }
+    const targetUser = allUsers.find((u) => u.id === selectedPromoteUserId);
+    if (!targetUser) {
+      setAdminFormStatus({
+        type: "error",
+        message: "Selected user could not be found.",
+      });
+      return;
+    }
+    setIsPromotingUser(true);
+    try {
+      await updateUserRole(targetUser.id, adminRole);
+      const roleLabel =
+        adminRole === "agent-admin"
+          ? "Agent Admin (agent-admin)"
+          : "Super Admin (admin)";
+      setAdminFormStatus({
+        type: "success",
+        message: `${targetUser.name} (${targetUser.email}) has been promoted to ${roleLabel}.`,
+      });
+      setSelectedPromoteUserId("");
+      setPromoteUserSearch("");
+    } catch (err) {
+      setAdminFormStatus({
+        type: "error",
+        message:
+          err instanceof Error ? err.message : "Failed to promote user.",
+      });
+    } finally {
+      setIsPromotingUser(false);
     }
   };
 
@@ -1664,7 +1712,7 @@ export default function AdminDashboardPage() {
 
           {/* 5B. CREATE ADMIN USER PAGE */}
           {activeTab === "create_user" && (
-            <div className="max-w-2xl space-y-6">
+            <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -1689,18 +1737,54 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-5">
-                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                  <div className="w-9 h-9 rounded-md bg-[#F0FDF4] border border-emerald-200 flex items-center justify-center text-[#16A34A]">
-                    <UserPlus className="w-4 h-4" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-md bg-[#F0FDF4] border border-emerald-200 flex items-center justify-center text-[#16A34A]">
+                      <UserPlus className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        {createUserMode === "promote"
+                          ? "Promote Existing User"
+                          : "Create New Account"}
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        {createUserMode === "promote"
+                          ? "Select an existing user from Firestore and promote them to Agent Admin or Super Admin."
+                          : "New admin accounts are activated immediately without interrupting your current Super Admin session."}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Account Details &amp; Role Assignment
-                    </h3>
-                    <p className="text-[11px] text-slate-500">
-                      New admin accounts are activated immediately without
-                      interrupting your current Super Admin session.
-                    </p>
+
+                  <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 self-start">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateUserMode("promote");
+                        setAdminFormStatus(null);
+                      }}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors cursor-pointer ${
+                        createUserMode === "promote"
+                          ? "bg-[#14532D] text-white"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Promote Existing User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateUserMode("create");
+                        setAdminFormStatus(null);
+                      }}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors cursor-pointer ${
+                        createUserMode === "create"
+                          ? "bg-[#14532D] text-white"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Create New Account
+                    </button>
                   </div>
                 </div>
 
@@ -1716,7 +1800,150 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
+                {createUserMode === "promote" ? (
+                  <form onSubmit={handlePromoteUserSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Filter Users (by name or email)
+                      </label>
+                      <input
+                        type="text"
+                        value={promoteUserSearch}
+                        onChange={(e) => setPromoteUserSearch(e.target.value)}
+                        placeholder="Search users by name or email..."
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md mb-2"
+                      />
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Select User to Promote *
+                      </label>
+                      <select
+                        required
+                        value={selectedPromoteUserId}
+                        onChange={(e) => setSelectedPromoteUserId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-md"
+                      >
+                        <option value="">-- Choose a user --</option>
+                        {allUsers
+                          .filter((u) => {
+                            if (u.id === user.id) return false;
+                            const q = promoteUserSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              u.name.toLowerCase().includes(q) ||
+                              u.email.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((u) => {
+                            const currentRoleLabel =
+                              u.role === "admin"
+                                ? "Super Admin"
+                                : u.role === "agent-admin"
+                                ? "Agent Admin"
+                                : "User";
+                            return (
+                              <option key={u.id} value={u.id}>
+                                {u.name} ({u.email}) — Current: {currentRoleLabel}
+                              </option>
+                            );
+                          })}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-2">
+                        Promote To Role *
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label
+                          className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            adminRole === "agent-admin"
+                              ? "bg-[#F0FDF4] border-[#16A34A]"
+                              : "bg-slate-50 border-slate-200 hover:bg-slate-100/70"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="promoteRole"
+                            value="agent-admin"
+                            checked={adminRole === "agent-admin"}
+                            onChange={() => setAdminRole("agent-admin")}
+                            className="mt-0.5 accent-[#16A34A]"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">
+                              Agent Admin
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Can create tasks and manage submissions for the
+                              tasks they created only. No withdrawals or
+                              transactions access.
+                            </p>
+                          </div>
+                        </label>
+
+                        <label
+                          className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            adminRole === "admin"
+                              ? "bg-[#F0FDF4] border-[#16A34A]"
+                              : "bg-slate-50 border-slate-200 hover:bg-slate-100/70"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="promoteRole"
+                            value="admin"
+                            checked={adminRole === "admin"}
+                            onChange={() => setAdminRole("admin")}
+                            className="mt-0.5 accent-[#16A34A]"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">
+                              Super Admin
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Full access to users, roles, tasks, all
+                              submissions, withdrawals, transactions, ads, and
+                              settings.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={isPromotingUser || !selectedPromoteUserId}
+                        className="py-2.5 px-5 bg-[#16A34A] hover:bg-[#15803d] text-white text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                      >
+                        {isPromotingUser ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Promoting User...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>
+                              Promote to{" "}
+                              {adminRole === "agent-admin"
+                                ? "Agent Admin"
+                                : "Super Admin"}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("users")}
+                        className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1869,6 +2096,7 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
                 </form>
+                )}
               </div>
             </div>
           )}
