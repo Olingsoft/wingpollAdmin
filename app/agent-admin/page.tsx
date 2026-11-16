@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
+  Bell,
   Briefcase,
   CheckCircle2,
   ClipboardCheck,
   Edit3,
   LayoutDashboard,
   Loader2,
+  LogOut,
   Menu,
   PlusCircle,
   Power,
@@ -68,6 +69,7 @@ export default function AgentAdminPage() {
   const [submissionFilter, setSubmissionFilter] = useState<
     "ALL" | SubmissionStatus
   >("ALL");
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -478,23 +480,15 @@ export default function AgentAdminPage() {
         </div>
 
         <div className="p-3 border-t border-slate-200 space-y-1.5 bg-slate-50/50">
-          <a
-            href={`${WINGPOLL_DOMAIN}/dashboard`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-[#16A34A] rounded-md hover:bg-white transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Earner Dashboard</span>
-          </a>
           <button
             type="button"
             onClick={async () => {
               await logoutUser();
             }}
-            className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold text-red-600 bg-red-50/70 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer"
           >
-            Sign Out ({user.name})
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
@@ -522,7 +516,73 @@ export default function AgentAdminPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Agent Notification Bell */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNotifOpen((prev) => !prev)}
+                className="relative p-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 cursor-pointer"
+                aria-label="Agent notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {pendingSubmissionsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingSubmissionsCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-40 overflow-hidden">
+                  <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">
+                      Pending Reviews
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setNotifOpen(false)}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-xs">
+                    {pendingSubmissionsCount === 0 ? (
+                      <p className="p-4 text-center text-slate-400">
+                        No pending submissions to review.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("submissions");
+                          setNotifOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="font-medium text-slate-800">
+                          Task submissions to review
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
+                          {pendingSubmissionsCount}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="hidden md:flex flex-col items-end border-l border-slate-200 pl-3">
+              <span className="text-xs font-bold text-slate-900 leading-tight">
+                {user.name}
+              </span>
+              <span className="text-[11px] text-slate-500 leading-tight">
+                {user.email}
+              </span>
+            </div>
+
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F0FDF4] text-[#14532D] border border-emerald-200">
               <ShieldCheck className="w-3.5 h-3.5 text-[#16A34A]" />
               <span>

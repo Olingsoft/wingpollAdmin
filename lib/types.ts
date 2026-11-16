@@ -88,7 +88,7 @@ export interface Submission {
   };
 }
 
-export type WithdrawalStatus = "Processing" | "Completed" | "Failed";
+export type WithdrawalStatus = "Processing" | "On Hold" | "Completed" | "Failed";
 
 export interface Withdrawal {
   id: string;

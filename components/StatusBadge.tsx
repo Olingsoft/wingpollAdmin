@@ -23,6 +23,7 @@ export function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
     normalized === "pending review" ||
     normalized === "pending approval" ||
     normalized === "processing" ||
+    normalized === "on hold" ||
     normalized === "pending" ||
     normalized === "pending first task" ||
     normalized === "medium"

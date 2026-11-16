@@ -779,14 +779,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTransactions((prev) =>
       prev.map((t) => {
         if (t.reference === target.reference) {
+          const txnStatus: Transaction["status"] =
+            status === "On Hold" ? "Pending" : status;
           const updated: Transaction = {
             ...t,
-            status,
+            status: txnStatus,
             description:
               status === "Completed"
                 ? `M-Pesa Withdrawal Approved & Sent to ${target.mpesaNumber}`
                 : status === "Failed"
                 ? `M-Pesa Withdrawal Rejected (${target.mpesaNumber})`
+                : status === "On Hold"
+                ? `M-Pesa Withdrawal Placed On Hold (${target.mpesaNumber})`
                 : t.description,
           };
           saveTransactionToFirestore(updated);
@@ -795,6 +799,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return t;
       })
     );
+
+    if (status === "On Hold" && target.status !== "On Hold") {
+      const newNotif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        userId: target.userId,
+        title: "Withdrawal Request On Hold",
+        message:
+          notes?.trim() ||
+          `Your withdrawal request of KSh ${target.amount.toLocaleString()} (${target.reference}) has been placed on hold for verification.`,
+        time: formatNowTimestamp(),
+        read: false,
+        type: "withdrawal",
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+      saveNotificationToFirestore(newNotif);
+    }
 
     if (status === "Completed" && target.status !== "Completed") {
       const newNotif: NotificationItem = {
