@@ -959,7 +959,7 @@ export default function AgentAdminPage() {
                     </label>
                     <input
                       type="number"
-                      min={10}
+                      min={1}
                       required
                       value={taskReward}
                       onChange={(e) => setTaskReward(Number(e.target.value))}
